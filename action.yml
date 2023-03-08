@@ -27,8 +27,8 @@ runs:
     - name: Set tag ref
       shell: bash
       run: |
-        echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app#g') >> $GITHUB_ENV
-        echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler#g') >> $GITHUB_ENV        
+        echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app#g') >> $GITHUB_ENV
+        echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler#g') >> $GITHUB_ENV        
 
     - uses: actions/checkout@v2
 
