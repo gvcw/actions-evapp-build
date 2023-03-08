@@ -1,0 +1,105 @@
+name: "ev-app build"
+description: "build ev-app"
+inputs: 
+  MAVEN_VERSION:
+    required: true
+    default: 3.8.6
+  JAVA_VERSION:
+    required: true
+    default: 1.8
+  REGISTRY:
+    required: true
+    default: "gvcwapp.azurecr.io"
+  REGISTRY_PASSWORD:
+    required: true
+  EV_APP:
+    required: true
+  TAGS:
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})" | tr '/' '-'
+      id: extract_branch
+
+    - name: Set tag ref
+      shell: bash
+      run: |
+        echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app#g') >> $GITHUB_ENV
+        echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler#g') >> $GITHUB_ENV        
+
+    - uses: actions/checkout@v2
+
+    - name: Set up Maven
+      uses: stCarolas/setup-maven@v4.5
+      with:
+        maven-version: ${{ inputs.MAVEN_VERSION}}
+
+    - name: versions mvn
+      shell: bash
+      run: |
+        mvn --version
+
+    - uses: actions/setup-java@v1
+      with:
+        java-version: ${{ inputs.JAVA_VERSION}}
+
+    - name: versions java
+      shell: bash
+      run: |
+        java -version
+
+    - name: Cache mvn packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.OS }}-mvn-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.OS }}-mvn-
+          ${{ runner.OS }}-
+
+    - name: build deps
+      shell: bash
+      run: |
+        cd builddeps
+        . installdeps.sh
+        . installcomm.sh
+
+    - name: mvn build
+      shell: bash
+      run: mvn -B -e install -Ddockerfile.skip dependency:copy-dependencies
+      #-pl app,frontend,scheduler -am
+
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Login to Container Registry
+      uses: docker/login-action@v1 
+      with:
+        registry: ${{ inputs.REGISTRY }}
+        username: gvcwapp
+        password: ${{ inputs.REGISTRY_PASSWORD }}
+    
+    - name: Build and push app
+      uses: docker/build-push-action@v2
+      with:
+        context: app
+        push: true
+        file: app/Dockerfile-nojar
+        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/latest
+        tags: ${{ env.DOCKER_TAGS_APP }}
+ 
+    - name: Build and push scheduler
+      uses: docker/build-push-action@v2
+      with:
+        context: scheduler
+        push: true
+        file: scheduler/Dockerfile-nojar
+        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/latest
+        tags: ${{ env.DOCKER_TAGS_SCHEDULER }}
