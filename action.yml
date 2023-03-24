@@ -32,7 +32,7 @@ runs:
         images: |
           ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app
         tags: |
-          type=ref,evant=branch
+          type=ref,event=branch
           type=match,pattern=deploy-(.*),group=1,value={{branch}},event=branch
           type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
           type=ref,event=pr
@@ -46,7 +46,7 @@ runs:
         images: |
           ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler
         tags: |
-          type=ref,evant=branch
+          type=ref,event=branch
           type=match,pattern=deploy-(.*),group=1,value={{branch}},event=branch
           type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
           type=ref,event=pr
