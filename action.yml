@@ -19,11 +19,45 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Set tag ref
+    # - name: Set tag ref
+    #   shell: bash
+    #   run: |
+    #     echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:#g') >> $GITHUB_ENV
+    #     echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:#g') >> $GITHUB_ENV        
+
+    - name: Docker meta
+      id: meta-app
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app
+        tags: |
+          type=ref,evant=branch
+          type=match,pattern=deploy-(.*),group=1,value={{branch}},event=branch
+          type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
+          type=ref,event=pr
+          type=ref,event=tag
+          type=sha
+
+    - name: Docker meta
+      id: meta-scheduler
+      uses: docker/metadata-action@v4
+      with:
+        images: |
+          ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler
+        tags: |
+          type=ref,evant=branch
+          type=match,pattern=deploy-(.*),group=1,value={{branch}},event=branch
+          type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
+          type=ref,event=pr
+          type=ref,event=tag
+          type=sha
+
+    - name: show tags
       shell: bash
       run: |
-        echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:#g') >> $GITHUB_ENV
-        echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:#g') >> $GITHUB_ENV        
+        echo app: ${{ steps.meta-app.outputs.tags }}
+        echo scheduler: ${{ steps.meta-scheduler.outputs.tags }}
 
     - name: Set up Maven
       uses: stCarolas/setup-maven@v4.5
@@ -85,8 +119,9 @@ runs:
         context: app
         push: true
         file: app/Dockerfile-nojar
-        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/latest
-        tags: ${{ env.DOCKER_TAGS_APP }}
+        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}:latest
+        tags: ${{ steps.meta-app.outputs.tags }}
+        labels: ${{ steps.meta-scheduler.outputs.labels }}
  
     - name: Build and push scheduler
       uses: docker/build-push-action@v4
@@ -94,5 +129,6 @@ runs:
         context: scheduler
         push: true
         file: scheduler/Dockerfile-nojar
-        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/latest
-        tags: ${{ env.DOCKER_TAGS_SCHEDULER }}
+        cache-from: ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}:latest
+        tags: ${{ steps.meta-scheduler.outputs.tags }}
+        labels: ${{ steps.meta-scheduler.outputs.labels }}
