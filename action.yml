@@ -37,7 +37,7 @@ runs:
           type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
           type=ref,event=pr
           type=ref,event=tag
-          type=sha
+          type=sha,prefix=
 
     - name: Docker meta
       id: meta-scheduler
@@ -51,13 +51,13 @@ runs:
           type=match,pattern=pgeor-(.*)ci,group=1,value={{branch}},event=branch
           type=ref,event=pr
           type=ref,event=tag
-          type=sha
+          type=sha,prefix=
 
     - name: show tags
       shell: bash
       run: |
-        echo app: ${{ steps.meta-app.outputs.tags }}
-        echo scheduler: ${{ steps.meta-scheduler.outputs.tags }}
+        echo -e app: \n"${{ steps.meta-app.outputs.tags }}"
+        echo -e scheduler: \n"${{ steps.meta-scheduler.outputs.tags }}"
 
     - name: Set up Maven
       uses: stCarolas/setup-maven@v4.5
