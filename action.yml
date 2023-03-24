@@ -39,7 +39,7 @@ runs:
           type=ref,event=tag
           type=sha,prefix=
           type=raw,value=latest
-          
+
     - name: Docker meta
       id: meta-scheduler
       uses: docker/metadata-action@v4
@@ -58,8 +58,10 @@ runs:
     - name: show tags
       shell: bash
       run: |
-        echo -e app: \n"${{ steps.meta-app.outputs.tags }}"
-        echo -e scheduler: \n"${{ steps.meta-scheduler.outputs.tags }}"
+        echo app: 
+        echo "${{ steps.meta-app.outputs.tags }}"
+        echo scheduler: 
+        echo "${{ steps.meta-scheduler.outputs.tags }}"
 
     - name: Set up Maven
       uses: stCarolas/setup-maven@v4.5
