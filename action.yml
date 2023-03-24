@@ -29,8 +29,6 @@ runs:
       id: meta-app
       uses: docker/metadata-action@v4
       with:
-        flavor: |
-          latest=auto        
         images: |
           ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app
         tags: |
@@ -40,13 +38,12 @@ runs:
           type=ref,event=pr
           type=ref,event=tag
           type=sha,prefix=
-
+          type=raw,value=latest
+          
     - name: Docker meta
       id: meta-scheduler
       uses: docker/metadata-action@v4
       with:
-        flavor: |
-          latest=auto        
         images: |
           ${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler
         tags: |
@@ -56,6 +53,7 @@ runs:
           type=ref,event=pr
           type=ref,event=tag
           type=sha,prefix=
+          type=raw,value=latest
 
     - name: show tags
       shell: bash
