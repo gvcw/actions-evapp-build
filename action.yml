@@ -16,6 +16,11 @@ inputs:
     required: true
   TAGS:
     required: true
+  SM_API_KEY:
+    required: false
+  SM_CLIENT_CERT_PASSWORD:
+    required: false
+
 runs:
   using: "composite"
   steps:
@@ -24,6 +29,7 @@ runs:
     #   run: |
     #     echo DOCKER_TAGS_APP=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/app:#g') >> $GITHUB_ENV
     #     echo DOCKER_TAGS_SCHEDULER=${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:latest,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:$(echo ${{ inputs.TAGS }} | sed 's#,#,${{ inputs.REGISTRY }}/${{ inputs.EV_APP }}/scheduler:#g') >> $GITHUB_ENV        
+
 
     - name: Docker meta
       id: meta-app
@@ -98,11 +104,46 @@ runs:
         . installdeps.sh
         . installcomm.sh
 
+# [ -f code_signing_tools/linux_x64/env ] && . code_signing_tools/linux_x64/env
+# export SM_API_KEY=${{ inputs.SM_API_KEY }}
+# export SM_CLIENT_CERT_PASSWORD=${{ inputs.SM_CLIENT_CERT_PASSWORD }}
+# echo PATH=$PATH
+# echo SM_API_KEY=$(echo $SM_API_KEY | sed 's/.$//')
+# echo SM_CLIENT_CERT_PASSWORD=$(echo $SM_CLIENT_CERT_PASSWORD | sed 's/.$//')
+# env | grep SM_
     - name: mvn build
       shell: bash
-      run: mvn -B -e install -Ddockerfile.skip dependency:copy-dependencies
+      run: |
+        mvn -B -e install -Ddockerfile.skip dependency:copy-dependencies 
+      #-PPublicSigning
       #-pl app,frontend,scheduler -am
 
+
+    # - name: test
+    #   shell: bash
+    #   run: |
+    #     [ -f code_signing_tools/linux_x64/env ] && . code_signing_tools/linux_x64/env
+    #     export SM_API_KEY=${{ inputs.SM_API_KEY }}
+    #     export SM_CLIENT_CERT_PASSWORD=${{ inputs.SM_CLIENT_CERT_PASSWORD }}
+    #     echo PATH=$PATH
+    #     echo SM_API_KEY=$(echo $SM_API_KEY | sed 's/.$//')
+    #     echo SM_CLIENT_CERT_PASSWORD=$(echo $SM_CLIENT_CERT_PASSWORD | sed 's/.$//')
+    #     env | grep SM_
+    #     cd /home/runner/work/ev-app/ev-app/mrzclient 
+    #     /opt/hostedtoolcache/jdk/8.0.482/x64/jre/../bin/jarsigner -verbose -keystore NONE -storepass 'itcLW1UrMkaU' -storetype PKCS11 -providerClass sun.security.pkcs11.SunPKCS11 -providerArg ../code_signing_tools/linux_x64/pkcs11properties.cfg -J-Dfile.encoding=UTF-8 -tsa http://timestamp.digicert.com /home/runner/work/ev-app/ev-app/mrzclient/target/mrzclient.jar key_1461487827
+
+    - name: Setup Software Trust Manager
+      uses: digicert/code-signing-software-trust-action@v1
+      with:
+        simple-signing-mode: true
+        # If the below 2 parameters are supplied, then smctl executable is invoked to attempt the signing.
+        input: ./app/target/frontenddist/jnlp/
+        keypair-alias: "key_1461487827"
+      env:
+        SM_HOST: "https://clientauth.one.digicert.com"
+        SM_API_KEY: ${{ inputs.SM_API_KEY }}
+        SM_CLIENT_CERT_FILE: "code_signing_tools/gvcw-ci-cert.p12"
+        SM_CLIENT_CERT_PASSWORD: ${{ inputs.SM_CLIENT_CERT_PASSWORD }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
